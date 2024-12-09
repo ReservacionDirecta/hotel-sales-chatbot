@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Hotel {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  rooms       Room[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Room {
+  id          Int       @id @default(autoincrement())
+  hotelId     Int
+  hotel       Hotel     @relation(fields: [hotelId], references: [id])
+  type        String    // e.g., "Single", "Double", "Suite"
+  price       Float
+  available   Boolean   @default(true)
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Conversation {
+  id          Int       @id @default(autoincrement())
+  userId      String    // WhatsApp number
+  status      String    // "active", "completed", "abandoned"
+  messages    Message[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  conversationId Int
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  sender         String       // "client" or "bot"
+  content        String
+  messageType    String       // "text", "image", "location", etc.
+  timestamp      DateTime     @default(now())
+}
+
+model SalesScript {
+  id        Int      @id @default(autoincrement())
+  name      String
+  content   String
+  type      String   // e.g., "welcome", "booking", "upsell"
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Settings {
+  id                Int      @id @default(autoincrement())
+  currency         String   @default("USD")
+  language         String   @default("es")
+  timeZone         String   @default("America/Lima")
+  welcomeMessage   String   @default("¡Bienvenido! ¿En qué puedo ayudarte?")
+  businessName     String   @default("")
+  businessHours    String   @default("09:00-18:00")
+  notificationEmail String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
