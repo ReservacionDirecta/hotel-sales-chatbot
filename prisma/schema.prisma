@@ -1,0 +1,59 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["extendedWhereUnique"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Conversation {
+  id               Int       @id @default(autoincrement())
+  userId          String
+  whatsappId      String?   @unique
+  status          String    @default("active")
+  messages        Message[]
+  lastMessageContent String?
+  lastMessageSender  String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([whatsappId])
+}
+
+model Message {
+  id             Int          @id @default(autoincrement())
+  content        String
+  sender         String       // 'user' | 'assistant'
+  messageType    String       @default("text") // 'text' | 'image' | 'location' | 'video' | 'audio'
+  timestamp      DateTime     @default(now())
+  messageId      String?      @unique
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  conversationId Int
+
+  @@index([conversationId])
+  @@index([messageId])
+}
+
+model SalesScript {
+  id      Int     @id @default(autoincrement())
+  name    String
+  content String
+  type    String
+  active  Boolean @default(true)
+}
+
+model Settings {
+  id                Int     @id @default(autoincrement())
+  currency         String  @default("USD")
+  language         String  @default("es")
+  timeZone         String  @default("America/Lima")
+  welcomeMessage   String  @default("¡Bienvenido!")
+  businessName     String  @default("Hotel")
+  businessHours    String  @default("9:00-18:00")
+  notificationEmail String?
+}

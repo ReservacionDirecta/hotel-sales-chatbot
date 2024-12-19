@@ -1,0 +1,123 @@
+{
+    "modules": {
+        "ConfigModule": {
+            "files": [
+                "config/config.module.ts",
+                "config/config.service.ts"
+            ],
+            "description": "Configuration module"
+        },
+        "ConversationsModule": {
+            "files": [
+                "conversations/conversations.module.ts",
+                "conversations/conversations.service.ts"
+            ],
+            "description": "Conversations module"
+        },
+        "EventEmitterModule": {
+            "files": [
+                "event-emitter/event-emitter.module.ts"
+            ],
+            "description": "Event emitter module"
+        },
+        "PrismaModule": {
+            "files": [
+                "prisma/prisma.module.ts",
+                "prisma/prisma.service.ts"
+            ],
+            "description": "Prisma module"
+        },
+        "ScriptsModule": {
+            "files": [
+                "scripts/scripts.module.ts",
+                "scripts/scripts.service.ts"
+            ],
+            "description": "Scripts module"
+        },
+        "SettingsModule": {
+            "files": [
+                "settings/settings.module.ts",
+                "settings/settings.service.ts"
+            ],
+            "description": "Settings module"
+        },
+        "WhatsappModule": {
+            "files": [
+                "whatsapp/whatsapp.module.ts",
+                "whatsapp/whatsapp.service.ts"
+            ],
+            "description": "Whatsapp module"
+        },
+        "ChatbotModule": {
+            "files": [
+                "chatbot/chatbot.module.ts",
+                "chatbot/chatbot.service.ts"
+            ],
+            "description": "Chatbot module"
+        },
+        "HotelModule": {
+            "files": [
+                "hotel/hotel.module.ts",
+                "hotel/hotel.service.ts"
+            ],
+            "description": "Hotel module"
+        },
+        "ApiModule": {
+            "files": [
+                "api/api.module.ts",
+                "api/api.service.ts"
+            ],
+            "description": "API module"
+        }
+    },
+    "entities": {
+        "Conversation": {
+            "files": [
+                "hotel/entities/conversation.entity.ts"
+            ],
+            "description": "Conversation entity"
+        },
+        "Message": {
+            "files": [
+                "hotel/entities/message.entity.ts"
+            ],
+            "description": "Message entity"
+        },
+        "Hotel": {
+            "files": [
+                "hotel/entities/hotel.entity.ts"
+            ],
+            "description": "Hotel entity"
+        },
+        "Room": {
+            "files": [
+                "hotel/entities/room.entity.ts"
+            ],
+            "description": "Room entity"
+        },
+        "ApiResponse": {
+            "files": [
+                "api/entities/api-response.entity.ts"
+            ],
+            "description": "API response entity"
+        }
+    },
+    "projectStructure": {
+        "directories": [
+            "backend",
+            "docs",
+            "frontend",
+            "prisma",
+            "test-server"
+        ],
+        "files": [
+            ".env",
+            ".windsurfrules",
+            "BUGS.md",
+            "context.md",
+            "eslint.config.js",
+            "PENDING_AND_BUGS.md",
+            "README.md"
+        ]
+    }
+}
