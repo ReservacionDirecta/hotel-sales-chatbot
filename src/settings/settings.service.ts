@@ -1,26 +1,23 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { UpdateSettingsDto } from './dto/update-settings.dto';
 
 @Injectable()
 export class SettingsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async getSettings() {
     const settings = await this.prisma.settings.findFirst();
     return settings;
   }
 
-  async updateSettings(updateSettingsDto: UpdateSettingsDto) {
+  async updateSettings(updateSettingsDto: any) {
     const settings = await this.prisma.settings.findFirst();
-
     if (settings) {
       return this.prisma.settings.update({
         where: { id: settings.id },
         data: updateSettingsDto,
       });
     }
-
     return this.prisma.settings.create({
       data: updateSettingsDto,
     });

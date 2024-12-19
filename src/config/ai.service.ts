@@ -10,9 +10,20 @@ export class AIConfigService {
     return this.configService.get<string>('ai.defaultProvider');
   }
 
-  getProviderConfig(provider: string = this.defaultProvider): AIConfig {
-    const providers = this.configService.get<AIProviderConfig>('ai.providers');
-    return providers[provider];
+  getProviderConfig(provider: string = this.defaultProvider): AIConfig | null {
+    switch (provider.toLowerCase()) {
+      case 'gemini':
+        return {
+          provider: 'gemini',
+          apiKey: this.configService.get<string>('GEMINI_API_KEY'),
+          model: 'gemini-pro',
+          temperature: 0.7,
+          maxTokens: 1000,
+        };
+      default:
+        const providers = this.configService.get<AIProviderConfig>('ai.providers');
+        return providers[provider] ?? null;
+    }
   }
 
   updateProviderConfig(provider: string, config: Partial<AIConfig>): void {

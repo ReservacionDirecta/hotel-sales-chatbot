@@ -1,19 +1,17 @@
-import { Controller, Get, Patch, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
 import { SettingsService } from './settings.service';
-import { UpdateSettingsDto } from './dto/update-settings.dto';
 
-@Controller('hotel/settings')
+@Controller('settings')
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
   @Get()
   async getSettings() {
-    const settings = await this.settingsService.getSettings();
-    return settings || { currency: 'USD' }; // Default settings if none exist
+    return this.settingsService.getSettings();
   }
 
   @Patch()
-  async updateSettings(@Body() updateSettingsDto: UpdateSettingsDto) {
+  async updateSettings(@Body() updateSettingsDto: any) {
     return this.settingsService.updateSettings(updateSettingsDto);
   }
 }

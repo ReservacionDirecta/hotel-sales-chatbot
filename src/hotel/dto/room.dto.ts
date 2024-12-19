@@ -1,24 +1,43 @@
-import { IsString, IsNumber, IsBoolean, IsOptional } from 'class-validator';
+import { IsString, IsNumber, IsBoolean, IsOptional, IsArray } from 'class-validator';
 
 export class CreateRoomDto {
   @IsString()
+  name: string;
+
+  @IsString()
   type: string;
+
+  @IsNumber()
+  capacity: number;
 
   @IsNumber()
   price: number;
 
   @IsBoolean()
-  available: boolean;
+  @IsOptional()
+  isAvailable: boolean = true;
 
   @IsString()
   @IsOptional()
   description?: string;
+
+  @IsArray()
+  @IsOptional()
+  amenities?: string[];
 }
 
 export class UpdateRoomDto {
   @IsString()
   @IsOptional()
+  name?: string;
+
+  @IsString()
+  @IsOptional()
   type?: string;
+
+  @IsNumber()
+  @IsOptional()
+  capacity?: number;
 
   @IsNumber()
   @IsOptional()
@@ -26,9 +45,13 @@ export class UpdateRoomDto {
 
   @IsBoolean()
   @IsOptional()
-  available?: boolean;
+  isAvailable?: boolean;
 
   @IsString()
   @IsOptional()
   description?: string;
+
+  @IsArray()
+  @IsOptional()
+  amenities?: string[];
 }

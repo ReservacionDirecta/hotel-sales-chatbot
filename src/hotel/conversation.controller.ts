@@ -127,9 +127,15 @@ export class ConversationController {
   @Post(':id/messages')
   async addMessage(
     @Param('id', ParseIntPipe) id: number,
-    @Body() createMessageDto: CreateMessageDto
+    @Body(new ValidationPipe({
+      transform: true,
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      enableDebugMessages: true
+    })) createMessageDto: CreateMessageDto
   ) {
     try {
+      console.log('Received message DTO:', JSON.stringify(createMessageDto));
       const message = await this.conversationService.createMessage(
         id,
         createMessageDto
@@ -139,13 +145,15 @@ export class ConversationController {
         data: message,
       };
     } catch (error) {
+      console.error('Error in addMessage:', error);
       throw new HttpException(
         {
           success: false,
           message: error.message || 'Error al agregar el mensaje',
-          data: []
+          data: [],
+          validationErrors: error.response?.message
         },
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }

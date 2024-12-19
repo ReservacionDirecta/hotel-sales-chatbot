@@ -1,19 +1,19 @@
-2024/12/10-21:41:04.378 29f8 Reusing MANIFEST c:\Users\yerct\CascadeProjects\hotel-sales-chatbot\backend\whatsapp-sessions\session-hotel-sales-bot\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2024/12/10-21:41:04.379 29f8 Recovering log #649
-2024/12/10-21:41:04.409 29f8 Reusing old log c:\Users\yerct\CascadeProjects\hotel-sales-chatbot\backend\whatsapp-sessions\session-hotel-sales-bot\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/000649.log 
-2024/12/10-21:41:06.392 8bbc Level-0 table #657: started
-2024/12/10-21:41:06.481 8bbc Level-0 table #657: 162128 bytes OK
-2024/12/10-21:41:06.484 8bbc Delete type=0 #649
-2024/12/10-21:41:06.485 8bbc Manual compaction at level-0 from '\x00\xac\x00\x00\x00' @ 72057594037927935 : 1 .. '\x00\xad\x00\x00\x00' @ 0 : 0; will stop at (end)
-2024/12/10-21:41:06.599 3b88 Compacting 1@1 + 4@2 files
-2024/12/10-21:41:06.745 3b88 Generated table #658@1: 59054 keys, 2207954 bytes
-2024/12/10-21:41:06.959 3b88 Generated table #659@1: 32460 keys, 2198612 bytes
-2024/12/10-21:41:07.123 3b88 Generated table #660@1: 53070 keys, 2215135 bytes
-2024/12/10-21:41:07.240 3b88 Generated table #661@1: 28050 keys, 1396599 bytes
-2024/12/10-21:41:07.240 3b88 Compacted 1@1 + 4@2 files => 8018300 bytes
-2024/12/10-21:41:07.241 3b88 compacted to: files[ 0 0 4 0 0 0 0 ]
-2024/12/10-21:41:07.241 3b88 Delete type=2 #651
-2024/12/10-21:41:07.241 3b88 Delete type=2 #652
-2024/12/10-21:41:07.241 3b88 Delete type=2 #653
-2024/12/10-21:41:07.241 3b88 Delete type=2 #654
-2024/12/10-21:41:07.241 3b88 Delete type=2 #657
+2024/12/19-10:52:35.688 1068 Reusing MANIFEST C:\Users\yerct\CascadeProjects\hotel-sales-chatbot\backend\whatsapp-sessions\session-hotel-sales-bot\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2024/12/19-10:52:35.690 1068 Recovering log #4470
+2024/12/19-10:52:36.305 1068 Reusing old log C:\Users\yerct\CascadeProjects\hotel-sales-chatbot\backend\whatsapp-sessions\session-hotel-sales-bot\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/004470.log 
+2024/12/19-10:52:42.474 29b4 Level-0 table #4478: started
+2024/12/19-10:52:42.611 29b4 Level-0 table #4478: 997556 bytes OK
+2024/12/19-10:52:42.676 29b4 Delete type=0 #4470
+2024/12/19-10:52:42.677 29b4 Manual compaction at level-0 from ' $\x05\x00\x00\x00' @ 72057594037927935 : 1 .. ' %\x05\x00\x00\x00' @ 0 : 0; will stop at (end)
+2024/12/19-10:52:50.526 1068 Compacting 1@1 + 4@2 files
+2024/12/19-10:52:51.223 1068 Generated table #4479@1: 44919 keys, 2192262 bytes
+2024/12/19-10:52:51.670 1068 Generated table #4480@1: 34961 keys, 2202776 bytes
+2024/12/19-10:52:52.069 1068 Generated table #4481@1: 52104 keys, 2215130 bytes
+2024/12/19-10:52:52.240 1068 Generated table #4482@1: 26336 keys, 1016537 bytes
+2024/12/19-10:52:52.240 1068 Compacted 1@1 + 4@2 files => 7626705 bytes
+2024/12/19-10:52:52.241 1068 compacted to: files[ 0 0 4 0 0 0 0 ]
+2024/12/19-10:52:52.242 1068 Delete type=2 #4472
+2024/12/19-10:52:52.242 1068 Delete type=2 #4473
+2024/12/19-10:52:52.242 1068 Delete type=2 #4474
+2024/12/19-10:52:52.242 1068 Delete type=2 #4475
+2024/12/19-10:52:52.242 1068 Delete type=2 #4478

@@ -1,0 +1,9 @@
+2024/12/18-21:16:29.743 38c8 Reusing MANIFEST C:\Users\yerct\CascadeProjects\hotel-sales-chatbot\backend\whatsapp-sessions\session-hotel-sales-bot\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
+2024/12/18-21:16:29.745 38c8 Recovering log #4449
+2024/12/18-21:16:29.816 38c8 Reusing old log C:\Users\yerct\CascadeProjects\hotel-sales-chatbot\backend\whatsapp-sessions\session-hotel-sales-bot\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/004449.log 
+2024/12/18-21:16:29.817 38c8 Delete type=2 #4444
+2024/12/18-21:16:29.817 38c8 Delete type=2 #4445
+2024/12/18-21:16:29.817 38c8 Delete type=2 #4446
+2024/12/18-21:16:29.817 38c8 Delete type=2 #4447
+2024/12/18-21:16:29.817 38c8 Delete type=2 #4450
+2024/12/18-21:16:32.844 5f20 Manual compaction at level-0 from ' \x1d\x05\x00\x00\x00' @ 72057594037927935 : 1 .. ' \x1e\x05\x00\x00\x00' @ 0 : 0; will stop at (end)

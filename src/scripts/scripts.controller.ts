@@ -23,4 +23,4 @@ export class ScriptsController {
   ) {
     return this.scriptsService.updateSalesScript(id, data);
   }
-}   
+}

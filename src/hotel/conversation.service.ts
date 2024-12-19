@@ -171,47 +171,38 @@ export class ConversationService {
       // Verify conversation exists
       const conversation = await this.findOne(conversationId);
       if (!conversation) {
-        throw new Error(`Conversation ${conversationId} not found`);
+        throw new NotFoundException(`Conversation ${conversationId} not found`);
       }
       
       // Create user message first
       const message = await this.prisma.message.create({
         data: {
           content: createMessageDto.content,
-          sender: createMessageDto.sender,
+          sender: createMessageDto.sender || 'user',
           messageType: createMessageDto.messageType || 'text',
           messageId: `msg_${Date.now()}`,
           conversation: {
             connect: {
               id: conversationId
             }
-          },
-          timestamp: new Date()
+          }
         },
       });
       
       console.log('User message created:', message);
 
       // If the message is from the user, generate AI response
-      if (createMessageDto.sender === 'user') {
+      if (createMessageDto.sender !== 'assistant') {
         console.log('Generating AI response for user message');
         
         const conversationHistory = conversation.messages.map(
           msg => `${msg.sender}: ${msg.content}`
         );
         
-        // Get hotel information from the database
-        const hotelInfo = await this.prisma.hotelInfo.findFirst();
-        if (!hotelInfo) {
-          console.error('No hotel information found in database');
-          throw new Error('Hotel information not configured');
-        }
-        
-        console.log('Requesting AI response with hotel info:', hotelInfo.name);
+        console.log('Requesting AI response with conversation history');
         
         const aiResponse = await this.geminiService.generateHotelResponse(
           createMessageDto.content,
-          hotelInfo,
           conversationHistory
         );
 
@@ -229,11 +220,16 @@ export class ConversationService {
                 connect: {
                   id: conversationId
                 }
-              },
-              timestamp: new Date()
+              }
             },
           });
           console.log('Bot message created:', botMessage.id);
+          
+          // Return both messages
+          return {
+            userMessage: message,
+            botMessage: botMessage
+          };
         }
       }
 
@@ -243,7 +239,7 @@ export class ConversationService {
         data: { updatedAt: new Date() },
       });
 
-      return message;
+      return { userMessage: message };
     } catch (error) {
       console.error('Error in createMessage:', error);
       throw new Error(`Error al crear el mensaje: ${error.message}`);

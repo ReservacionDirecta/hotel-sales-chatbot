@@ -97,4 +97,27 @@ export class ChatbotService {
       return 'Lo siento, hubo un error. Por favor, intenta nuevamente.';
     }
   }
+
+  async findOrCreateConversation(whatsappId: string) {
+    try {
+      let conversation = await this.prisma.conversation.findFirst({
+        where: { whatsappId }
+      });
+
+      if (!conversation) {
+        conversation = await this.prisma.conversation.create({
+          data: {
+            whatsappId,
+            userId: whatsappId,
+            status: 'active'
+          }
+        });
+      }
+
+      return conversation;
+    } catch (error) {
+      this.logger.error('Error finding or creating conversation:', error);
+      throw error;
+    }
+  }
 }
