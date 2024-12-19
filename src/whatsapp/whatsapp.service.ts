@@ -1,5 +1,6 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { Client, LocalAuth, ClientOptions } from 'whatsapp-web.js';
+import { CustomWebCache } from '../common/utils/CustomWebCache';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { ChatbotService } from '../chatbot/chatbot.service';
 import * as path from 'path';
@@ -69,6 +70,7 @@ export class WhatsappService implements OnModuleInit {
           clientId: 'hotel-sales-bot',
           dataPath: this.sessionBasePath
         }),
+        webVersionCache: new CustomWebCache(),
         puppeteer: {
           headless: true,
           args: [
@@ -94,13 +96,13 @@ export class WhatsappService implements OnModuleInit {
 
       this.client = new Client(clientOptions);
       this.setupClientListeners();
-      
+
       try {
         await this.client.initialize();
         this.logger.log('WhatsApp client initialized successfully');
       } catch (initError) {
         this.logger.error('Detailed initialization error:', initError);
-        
+
         // Additional retry logic
         if (this.qrAttempts < this.maxQrAttempts) {
           this.qrAttempts++;
@@ -125,7 +127,7 @@ export class WhatsappService implements OnModuleInit {
       this.logger.log('QR Code received');
       this.qrCode = qr;
       this.qrAttempts++;
-      
+
       if (this.qrAttempts >= this.maxQrAttempts) {
         this.logger.warn('Max QR attempts reached, reinitializing client...');
         this.initialize();
@@ -159,11 +161,11 @@ export class WhatsappService implements OnModuleInit {
 
     this.client.on('message', async (message) => {
       this.logger.log(`New message from ${message.from}: ${message.body}`);
-      
+
       try {
         // Buscar o crear la conversación primero
         let conversation = await this.chatbotService.findOrCreateConversation(message.from);
-        
+
         // Emitir evento para que el sistema de conversaciones lo maneje
         this.eventEmitter.emit('whatsapp.message.received', {
           from: message.from,
@@ -175,10 +177,10 @@ export class WhatsappService implements OnModuleInit {
 
         // Procesar el mensaje con el chatbot
         const response = await this.chatbotService.processMessage(
-          message.body, 
+          message.body,
           conversation.id.toString()
         );
-        
+
         if (response) {
           await message.reply(response);
           this.logger.log(`Sent response to ${message.from}`);
@@ -191,7 +193,7 @@ export class WhatsappService implements OnModuleInit {
 
   async disconnect() {
     this.logger.log('Attempting to disconnect WhatsApp client...');
-    
+
     if (this.client) {
       try {
         await this.client.destroy();
@@ -226,7 +228,7 @@ export class WhatsappService implements OnModuleInit {
     // Esperamos hasta que se genere un código QR o se conecte
     let attempts = 0;
     const maxWaitAttempts = 30; // 30 segundos máximo de espera
-    
+
     while (!this.qrCode && !this._isConnected && attempts < maxWaitAttempts) {
       await new Promise(resolve => setTimeout(resolve, 1000));
       attempts++;

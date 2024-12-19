@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+Dockerfile
+.dockerignore
+.git
+.gitignore
+README.md
+dist
+.env
+.wwebjs_auth
+.wwebjs_cache
+whatsapp-sessions
+whatsapp-cache
+whatsapp-version-cache

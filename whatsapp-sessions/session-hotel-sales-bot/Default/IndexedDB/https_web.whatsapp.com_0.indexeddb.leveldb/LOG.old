@@ -1,4 +1,0 @@
-2024/12/19-10:21:39.760 390c Reusing MANIFEST C:\Users\yerct\CascadeProjects\hotel-sales-chatbot\backend\whatsapp-sessions\session-hotel-sales-bot\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/MANIFEST-000001
-2024/12/19-10:21:39.777 390c Recovering log #4470
-2024/12/19-10:21:39.872 390c Reusing old log C:\Users\yerct\CascadeProjects\hotel-sales-chatbot\backend\whatsapp-sessions\session-hotel-sales-bot\Default\IndexedDB\https_web.whatsapp.com_0.indexeddb.leveldb/004470.log 
-2024/12/19-10:21:45.866 6690 Manual compaction at level-0 from ' #\x05\x00\x00\x00' @ 72057594037927935 : 1 .. ' $\x05\x00\x00\x00' @ 0 : 0; will stop at (end)
