@@ -6,36 +6,56 @@ export class HotelService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getHotel() {
-    return this.prisma.hotel.findFirst({
+    const hotel = await this.prisma.hotel.findFirst({
       include: { rooms: true }
     });
+    return {
+      success: true,
+      data: hotel || {}
+    };
   }
 
   async getRooms() {
-    return this.prisma.room.findMany();
+    const rooms = await this.prisma.room.findMany();
+    return {
+      success: true,
+      data: rooms || []
+    };
   }
 
   async getAvailableRooms(date: string) {
-    return this.prisma.room.findMany({
+    const rooms = await this.prisma.room.findMany({
       where: { available: true }
     });
+    return {
+      success: true,
+      data: rooms || []
+    };
   }
 
   async createRoom(roomData: any) {
-    return this.prisma.room.create({
+    const room = await this.prisma.room.create({
       data: roomData
     });
+    return {
+      success: true,
+      data: room
+    };
   }
 
   async updateRoom(id: number, roomData: any) {
-    return this.prisma.room.update({
+    const room = await this.prisma.room.update({
       where: { id },
       data: roomData
     });
+    return {
+      success: true,
+      data: room
+    };
   }
 
   async getConversations(status?: string) {
-    return this.prisma.conversation.findMany({
+    const conversations = await this.prisma.conversation.findMany({
       where: status ? { status } : undefined,
       include: {
         messages: {
@@ -45,10 +65,15 @@ export class HotelService {
       },
       orderBy: { updatedAt: 'desc' }
     });
+
+    return {
+      success: true,
+      data: conversations || []
+    };
   }
 
   async getConversation(id: number) {
-    return this.prisma.conversation.findUnique({
+    const conversation = await this.prisma.conversation.findUnique({
       where: { id },
       include: {
         messages: {
@@ -56,24 +81,40 @@ export class HotelService {
         }
       }
     });
+    return {
+      success: true,
+      data: conversation || {}
+    };
   }
 
   async getSalesScripts() {
-    return this.prisma.salesScript.findMany({
-      orderBy: { type: 'asc' }
+    const scripts = await this.prisma.salesScript.findMany({
+      where: { active: true }
     });
+    return {
+      success: true,
+      data: scripts || []
+    };
   }
 
   async createSalesScript(scriptData: any) {
-    return this.prisma.salesScript.create({
+    const script = await this.prisma.salesScript.create({
       data: scriptData
     });
+    return {
+      success: true,
+      data: script
+    };
   }
 
   async updateSalesScript(id: number, scriptData: any) {
-    return this.prisma.salesScript.update({
+    const script = await this.prisma.salesScript.update({
       where: { id },
       data: scriptData
     });
+    return {
+      success: true,
+      data: script
+    };
   }
 }

@@ -33,6 +33,39 @@ async function main() {
     }
   });
 
+  // Create hotel info for Gemini AI
+  const hotelInfo = await prisma.hotelInfo.create({
+    data: {
+      name: 'Peña Linda Bungalows',
+      description: 'Peña Linda Bungalows es un exclusivo resort frente al mar que ofrece una experiencia única de alojamiento en bungalows privados. Cada unidad está diseñada para brindar el máximo confort y una vista espectacular al océano.',
+      location: 'Playa Peña Linda, Km 42 Panamericana Sur, Perú',
+      amenities: JSON.stringify([
+        'Piscina infinity con vista al mar',
+        'Restaurante gourmet',
+        'Bar de playa',
+        'Spa y centro de bienestar',
+        'Acceso directo a la playa',
+        'WiFi gratuito',
+        'Estacionamiento privado',
+        'Servicio a la habitación 24/7'
+      ]),
+      policies: JSON.stringify({
+        checkIn: 'A partir de las 15:00',
+        checkOut: 'Hasta las 11:00',
+        cancelacion: 'Cancelación gratuita hasta 48 horas antes',
+        mascotas: 'Se permiten mascotas pequeñas con cargo adicional',
+        niños: 'Los niños son bienvenidos. Cunas disponibles sin cargo',
+        pago: 'Aceptamos todas las tarjetas principales y efectivo'
+      }),
+      checkInTime: '15:00',
+      checkOutTime: '11:00',
+      contactPhone: '+51 123 456 789',
+      contactEmail: 'reservas@penalinda.com'
+    }
+  });
+
+  console.log('Created hotel info:', hotelInfo);
+
   // Create sales scripts
   const scripts = await prisma.salesScript.createMany({
     data: [
@@ -76,7 +109,7 @@ async function main() {
     }
   });
 
-  console.log({ hotel, scripts, settings });
+  console.log({ hotel, scripts, settings, hotelInfo });
 }
 
 main()

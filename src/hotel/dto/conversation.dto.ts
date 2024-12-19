@@ -4,11 +4,14 @@ export class CreateConversationDto {
 }
 
 export class UpdateConversationDto {
-  status?: 'active' | 'closed';
+  status: 'active' | 'closed' | 'archived';
 }
 
 export class CreateMessageDto {
   content: string;
   sender?: 'user' | 'assistant';
   messageId?: string;
+  messageType?: 'text' | 'image' | 'location' | 'video' | 'audio';
+  requireValidation?: boolean;
+  timestamp?: Date;
 }

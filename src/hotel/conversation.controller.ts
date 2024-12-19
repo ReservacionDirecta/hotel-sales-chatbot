@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Body, Param, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Patch, Body, Param, HttpException, HttpStatus, Query, ParseIntPipe, ValidationPipe, NotFoundException } from '@nestjs/common';
 import { ConversationService } from './conversation.service';
 import { CreateConversationDto, UpdateConversationDto, CreateMessageDto } from './dto/conversation.dto';
 
@@ -28,9 +28,9 @@ export class ConversationController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id', ParseIntPipe) id: number) {
     try {
-      const conversation = await this.conversationService.findOne(Number(id));
+      const conversation = await this.conversationService.findOne(id);
       if (!conversation) {
         throw new HttpException('Conversación no encontrada', HttpStatus.NOT_FOUND);
       }
@@ -48,6 +48,14 @@ export class ConversationController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  @Get('search')
+  async searchConversations(@Query('q') searchQuery: string) {
+    if (!searchQuery) {
+      return await this.conversationService.findAll();
+    }
+    return await this.conversationService.searchConversations(searchQuery);
   }
 
   @Post()
@@ -71,9 +79,9 @@ export class ConversationController {
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() updateConversationDto: UpdateConversationDto) {
+  async update(@Param('id', ParseIntPipe) id: number, @Body() updateConversationDto: UpdateConversationDto) {
     try {
-      const conversation = await this.conversationService.update(Number(id), updateConversationDto);
+      const conversation = await this.conversationService.update(id, updateConversationDto);
       return {
         success: true,
         data: conversation,
@@ -90,14 +98,40 @@ export class ConversationController {
     }
   }
 
+  @Patch(':id')
+  async updateStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body(new ValidationPipe({ transform: true, whitelist: true })) updateConversationDto: UpdateConversationDto
+  ) {
+    try {
+      console.log(`Updating conversation ${id} status to:`, updateConversationDto);
+      const conversation = await this.conversationService.update(id, updateConversationDto);
+      return {
+        success: true,
+        data: conversation,
+        message: 'Estado de conversación actualizado exitosamente'
+      };
+    } catch (error) {
+      console.error('Error updating conversation status:', error);
+      throw new HttpException(
+        {
+          success: false,
+          message: error.message || 'Error al actualizar el estado de la conversación',
+          data: null
+        },
+        error.status || HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Post(':id/messages')
   async addMessage(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() createMessageDto: CreateMessageDto
   ) {
     try {
-      const message = await this.conversationService.addMessage(
-        Number(id),
+      const message = await this.conversationService.createMessage(
+        id,
         createMessageDto
       );
       return {
@@ -118,12 +152,12 @@ export class ConversationController {
 
   @Post(':id/send-message')
   async sendMessage(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() createMessageDto: CreateMessageDto
   ) {
     try {
       const message = await this.conversationService.sendMessage(
-        Number(id),
+        id,
         createMessageDto
       );
       return {

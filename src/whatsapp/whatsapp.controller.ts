@@ -13,7 +13,7 @@ export class WhatsappController {
   async getStatus() {
     try {
       const status = await this.whatsappService.getConnectionStatus();
-      const isConnected = await this.whatsappService.isConnected();
+      const isConnected = this.whatsappService.isConnected;
       return {
         success: true,
         data: { ...status, isConnected }
@@ -99,8 +99,24 @@ export class WhatsappController {
     }
   }
 
-  @Delete('disconnect')
+  @Post('disconnect')
   async disconnect() {
+    try {
+      await this.whatsappService.disconnect();
+      return {
+        success: true,
+        message: 'WhatsApp desconectado exitosamente'
+      };
+    } catch (error) {
+      throw new HttpException({
+        success: false,
+        message: error.message || 'Error al desconectar WhatsApp'
+      }, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
+  @Delete('disconnect')
+  async disconnectDelete() {
     try {
       await this.whatsappService.disconnect();
       return { success: true, message: 'Desconectado exitosamente' };

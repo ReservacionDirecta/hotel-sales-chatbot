@@ -1,19 +1,20 @@
 import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
-import { Client, Message, LocalAuth } from 'whatsapp-web.js';
+import { Client, Message, LocalAuth, ClientOptions } from 'whatsapp-web.js';
 import * as qrcode from 'qrcode';
 import { PrismaService } from '../prisma/prisma.service';
 import { ChatbotService } from '../chatbot/chatbot.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import * as path from 'path';
 
 @Injectable()
 export class WhatsappService implements OnModuleInit {
   private client: Client;
   private readonly logger = new Logger(WhatsappService.name);
   private qrCode: string | null = null;
-  private isClientReady = false;
-  private connectionStatus: 'disconnected' | 'connecting' | 'connected' = 'disconnected';
+  private _isConnected = false;
+  private isInitializing = false;
   private qrAttempts = 0;
-  private readonly MAX_QR_ATTEMPTS = 3;
+  private maxQrAttempts = 3;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -24,295 +25,343 @@ export class WhatsappService implements OnModuleInit {
   }
 
   private async initializeClient() {
+    if (this.isInitializing) {
+      this.logger.warn('Client initialization already in progress');
+      return {
+        status: 'initializing',
+        qrAttempts: this.qrAttempts,
+        maxAttempts: this.maxQrAttempts,
+        isConnected: this._isConnected
+      };
+    }
+
     try {
-      this.client = new Client({
-        authStrategy: new LocalAuth(),
+      if (this.client) {
+        try {
+          await this.client.destroy();
+          // Esperar un momento después de destruir el cliente
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (error) {
+          this.logger.warn('Error destroying previous client:', error);
+        }
+      }
+
+      this.qrAttempts = 0;
+      this.maxQrAttempts = 5;
+      this.isInitializing = true;
+      this.qrCode = null;
+
+      const puppeteerOptions: any = {
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-accelerated-2d-canvas',
+          '--no-first-run',
+          '--no-zygote',
+          '--single-process',
+          '--disable-gpu',
+        ],
+        headless: true,
+        timeout: 60000,
+        protocolTimeout: 60000,
+        browserWSEndpoint: null,
+        userDataDir: path.join(process.cwd(), 'whatsapp-sessions'),
+      };
+
+      if (process.platform === 'win32') {
+        puppeteerOptions.executablePath = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
+      }
+
+      const clientOptions: ClientOptions = {
         puppeteer: {
           headless: true,
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
             '--disable-gpu'
-          ],
-          executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
+          ]
+        }
+      };
+
+      this.client = new Client({
+        ...clientOptions,
+        authStrategy: new LocalAuth({
+          clientId: 'hotel-sales-bot',
+          dataPath: './whatsapp-sessions'
+        })
+      });
+
+      this.client.on('qr', async (qr) => {
+        this.logger.log(`QR Code received from WhatsApp (attempt ${this.qrAttempts + 1}/${this.maxQrAttempts})`);
+        try {
+          this.qrCode = await qrcode.toDataURL(qr);
+          this.logger.log('QR Code successfully converted to data URL');
+          this.qrAttempts++;
+          
+          if (this.qrAttempts >= this.maxQrAttempts) {
+            this.logger.error('Max QR attempts reached');
+            this.qrCode = null;
+            this.isInitializing = false;
+            await this.resetConnection();
+          }
+        } catch (error) {
+          this.logger.error('Error generating QR code:', error);
+          this.qrCode = null;
+          this.isInitializing = false;
+          throw new Error(`No se pudo generar el código QR: ${error.message}`);
         }
       });
 
-      this.setupEventListeners();
+      this.client.on('loading_screen', (percent, message) => {
+        this.logger.log(`WhatsApp loading: ${percent}% - ${message}`);
+      });
+
+      this.client.on('ready', () => {
+        this.logger.log('WhatsApp client is ready!');
+        this._isConnected = true;
+        this.isInitializing = false;
+        this.qrCode = null;
+        this.qrAttempts = 0;
+      });
+
+      this.client.on('auth_failure', msg => {
+        this.logger.error('WhatsApp authentication failed:', msg);
+        this._isConnected = false;
+        this.isInitializing = false;
+      });
+
+      this.client.on('disconnected', async (reason) => {
+        this.logger.warn('WhatsApp client disconnected:', reason);
+        this._isConnected = false;
+        this.isInitializing = false;
+        this.qrCode = null;
+        
+        // Intentar reconectar después de un breve retraso
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        await this.resetConnection();
+      });
+
+      // Inicializar el cliente con un timeout más largo
+      await Promise.race([
+        this.client.initialize(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Timeout al inicializar WhatsApp')), 60000)
+        )
+      ]).catch((error) => {
+        this.logger.error('Error initializing WhatsApp client:', error);
+        this.isInitializing = false;
+        throw new Error('Error al inicializar WhatsApp: ' + error.message);
+      });
+
+      return {
+        status: 'initializing',
+        qrAttempts: this.qrAttempts,
+        maxAttempts: this.maxQrAttempts,
+        isConnected: this._isConnected
+      };
     } catch (error) {
-      this.logger.error('Failed to initialize WhatsApp client', error);
+      this.logger.error('Error in initializeClient:', error);
+      this.isInitializing = false;
       throw error;
     }
   }
 
-  private setupEventListeners() {
-    if (!this.client) {
-      this.logger.error('Client not initialized');
-      return;
+  async onModuleInit() {
+    // El cliente ya se inicializa en el constructor
+  }
+
+  async generateQR() {
+    this.logger.log('Attempting to generate QR code...');
+    
+    if (this._isConnected) {
+      this.logger.log('Client is already connected');
+      return {
+        qr: null,
+        status: 'connected',
+        attempts: this.qrAttempts
+      };
     }
 
-    this.client.on('qr', (qr) => {
-      this.qrCode = qr;
-      this.qrAttempts++;
-      this.connectionStatus = 'connecting';
-      this.logger.log(`QR Code received (Attempt ${this.qrAttempts}/${this.MAX_QR_ATTEMPTS})`);
-      this.eventEmitter.emit('whatsapp.qr', { qr, attempt: this.qrAttempts });
+    if (!this.isInitializing) {
+      this.logger.log('Client not initialized, starting initialization...');
+      await this.initializeClient();
+    }
 
-      if (this.qrAttempts >= this.MAX_QR_ATTEMPTS) {
-        this.logger.warn('Max QR attempts reached. Please try again later.');
-        this.resetConnection();
-      }
-    });
+    // Wait for QR code with timeout
+    let attempts = 0;
+    const maxWaitAttempts = 30;
+    const waitInterval = 1000; // 1 second
 
-    this.client.on('ready', () => {
-      this.isClientReady = true;
-      this.connectionStatus = 'connected';
-      this.qrAttempts = 0;
-      this.qrCode = null;
-      this.logger.log('WhatsApp client is ready!');
-      this.eventEmitter.emit('whatsapp.ready');
-    });
+    while (!this.qrCode && attempts < maxWaitAttempts) {
+      this.logger.debug(`Waiting for QR code... Attempt ${attempts + 1}/${maxWaitAttempts}`);
+      await new Promise(resolve => setTimeout(resolve, waitInterval));
+      attempts++;
+    }
 
-    this.client.on('disconnected', async (reason) => {
-      this.isClientReady = false;
-      this.connectionStatus = 'disconnected';
-      this.qrCode = null;
-      this.logger.warn(`WhatsApp client disconnected: ${reason}`);
-      this.eventEmitter.emit('whatsapp.disconnected', { reason });
-      await this.resetConnection();
-    });
+    if (!this.qrCode) {
+      this.logger.error('Failed to generate QR code after timeout');
+      throw new Error('No se pudo generar el código QR después de varios intentos');
+    }
 
-    this.client.on('authenticated', () => {
-      this.logger.log('WhatsApp client authenticated');
-      this.eventEmitter.emit('whatsapp.authenticated');
-    });
-
-    this.client.on('auth_failure', async (error) => {
-      this.logger.error('WhatsApp authentication failed:', error);
-      this.eventEmitter.emit('whatsapp.auth_failure', { error });
-      await this.resetConnection();
-    });
-
-    this.client.on('message', async (msg: Message) => {
-      try {
-        await this.handleMessage(msg);
-      } catch (error) {
-        this.logger.error('Error handling message:', error);
-      }
-    });
+    return {
+      qr: this.qrCode,
+      status: this._isConnected ? 'connected' : 'pending',
+      attempts: this.qrAttempts
+    };
   }
 
   private async resetConnection() {
-    this.qrAttempts = 0;
-    this.qrCode = null;
-    this.isClientReady = false;
-    this.connectionStatus = 'disconnected';
-    
     try {
-      if (this.client) {
-        try {
-          await this.client.destroy();
-        } catch (error) {
-          this.logger.error('Error destroying client:', error);
-        }
-      }
-
-      // Add a longer delay before reinitializing
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await this.disconnect();
       await this.initializeClient();
-      await this.startClient();
     } catch (error) {
       this.logger.error('Error resetting connection:', error);
       throw error;
     }
   }
 
-  private async startClient() {
-    if (this.connectionStatus === 'connecting') {
-      throw new Error('Client is already trying to connect');
-    }
-
+  async disconnect() {
+    this.logger.log('Attempting to disconnect WhatsApp client...');
+    
     try {
-      this.connectionStatus = 'connecting';
-      await this.client.initialize();
-    } catch (error) {
-      this.logger.error('Failed to initialize WhatsApp client', error);
-      this.connectionStatus = 'disconnected';
-      
-      // If the error is related to Chrome/Puppeteer, try to reset
-      if (error.message.includes('Protocol error') || error.message.includes('Session closed')) {
-        this.logger.log('Attempting to reset connection due to Chrome/Puppeteer error');
-        await this.resetConnection();
-      } else {
-        throw error;
+      if (this.client) {
+        await this.client.destroy();
+        this.logger.log('WhatsApp client destroyed successfully');
       }
-    }
-  }
-
-  async onModuleInit() {
-    try {
-      await this.startClient();
+      
+      this._isConnected = false;
+      this.isInitializing = false;
+      this.qrCode = null;
+      this.qrAttempts = 0;
+      
+      return true;
     } catch (error) {
-      this.logger.error('Error during module initialization:', error);
-      // Don't throw the error here to prevent NestJS from crashing
-      // The WhatsApp service will still be available, just not connected initially
+      this.logger.error('Error disconnecting WhatsApp client:', error);
+      throw new Error('Error al desconectar WhatsApp: ' + error.message);
     }
   }
 
   async getConnectionStatus() {
     return {
-      status: this.connectionStatus,
+      status: this._isConnected ? 'connected' : 'disconnected',
       qrAttempts: this.qrAttempts,
-      maxAttempts: this.MAX_QR_ATTEMPTS,
+      maxAttempts: this.maxQrAttempts
     };
   }
 
-  async isConnected(): Promise<boolean> {
-    return this.isClientReady;
-  }
-
-  private async generateQRBase64(qr: string): Promise<string> {
-    try {
-      return await qrcode.toDataURL(qr);
-    } catch (error) {
-      this.logger.error('Error generating QR code base64:', error);
-      throw error;
-    }
-  }
-
-  async generateQR(): Promise<{ qr: string | null; status: string; attempts: number }> {
-    if (this.isClientReady) {
-      return {
-        qr: null,
-        status: 'connected',
-        attempts: 0
-      };
-    }
-
-    if (this.qrAttempts >= this.MAX_QR_ATTEMPTS) {
-      throw new Error('Max QR attempts reached. Please try again later.');
-    }
-
-    if (!this.client || this.connectionStatus === 'disconnected') {
-      await this.resetConnection();
-    }
-
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        reject(new Error('QR code generation timed out'));
-      }, 30000);
-
-      const qrListener = async (qr: string) => {
-        try {
-          clearTimeout(timeout);
-          this.client.removeListener('qr', qrListener);
-          const qrBase64 = await this.generateQRBase64(qr);
-          resolve({
-            qr: qrBase64,
-            status: this.connectionStatus,
-            attempts: this.qrAttempts
-          });
-        } catch (error) {
-          reject(error);
-        }
-      };
-
-      this.client.on('qr', qrListener);
-    });
-  }
-
-  async disconnect(): Promise<void> {
-    try {
-      await this.client.destroy();
-      this.connectionStatus = 'disconnected';
-      this.isClientReady = false;
-      this.qrCode = null;
-      this.qrAttempts = 0;
-    } catch (error) {
-      this.logger.error('Error disconnecting WhatsApp client:', error);
-      throw error;
-    }
-  }
-
-  async handleMessage(message: Message) {
-    if (!message.body || message.fromMe) return;
-
-    try {
-      const response = await this.chatbotService.processMessage(message.body);
-      await message.reply(response);
-    } catch (error) {
-      this.logger.error('Error processing message:', error);
-      await message.reply('Lo siento, hubo un error al procesar tu mensaje. Por favor, intenta de nuevo más tarde.');
-    }
+  get isConnected(): boolean {
+    return this._isConnected;
   }
 
   private validatePhoneNumber(phoneNumber: string): boolean {
-    // Remove any non-digit characters
+    // Eliminar todos los caracteres no numéricos
     const cleaned = phoneNumber.replace(/\D/g, '');
-    
-    // Define country codes and their expected lengths
-    const countryFormats = {
-      '51': 9,  // Peru
-      '52': 10, // Mexico
-      '57': 10, // Colombia
-      '56': 9,  // Chile
-      '54': 10, // Argentina
-    };
-
-    // Extract country code (first 2 digits)
-    const countryCode = cleaned.slice(0, 2);
-    const numberWithoutCode = cleaned.slice(2);
-
-    // Check if country code is valid and number length matches expected format
-    return countryCode in countryFormats && 
-           numberWithoutCode.length === countryFormats[countryCode];
+    // Verificar que tenga entre 10 y 13 dígitos
+    return cleaned.length >= 10 && cleaned.length <= 13;
   }
 
   async linkPhoneNumber(phoneNumber: string): Promise<boolean> {
     try {
-      // Remove any non-digit characters for validation
+      // Limpiar número de teléfono
       const cleaned = phoneNumber.replace(/\D/g, '');
 
-      if (this.isClientReady) {
-        throw new Error('WhatsApp ya está conectado');
-      }
-
-      // Validate phone number format
+      // Validar formato
       if (!this.validatePhoneNumber(cleaned)) {
         throw new Error('Formato de número de teléfono inválido');
       }
 
-      // Format number with + prefix
+      // Formatear con prefijo +
       const formattedNumber = '+' + cleaned;
 
-      // If there's an existing client, destroy it
+      // Si hay un cliente existente, destruirlo
       if (this.client) {
         await this.client.destroy();
       }
 
-      // Initialize new client with the phone number
+      // Inicializar nuevo cliente con el número
       this.client = new Client({
+        authStrategy: new LocalAuth({ clientId: cleaned }),
         puppeteer: {
           headless: true,
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
+            '--disable-accelerated-2d-canvas',
+            '--no-first-run',
+            '--no-zygote',
             '--disable-gpu'
-          ],
-          executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe'
-        },
-        authStrategy: new LocalAuth({ clientId: cleaned })
+          ]
+        }
       });
 
-      this.setupEventListeners();
-      await this.startClient();
+      // Configurar eventos y inicializar
+      await this.initializeClient();
 
       return true;
     } catch (error) {
       this.logger.error('Error linking phone number:', error);
+      throw error;
+    }
+  }
+
+  async handleMessage(message: Message) {
+    try {
+      const chat = await message.getChat();
+      const contact = await message.getContact();
+      
+      // Guardar mensaje en la base de datos
+      const savedMessage = await this.prisma.message.create({
+        data: {
+          messageId: message.id.id,
+          content: message.body,
+          sender: 'user',
+          messageType: message.type || 'text',
+          conversation: {
+            connectOrCreate: {
+              where: {
+                whatsappId: chat.id.user
+              },
+              create: {
+                userId: chat.id.user,
+                whatsappId: chat.id.user,
+                status: 'active'
+              }
+            }
+          }
+        },
+        include: {
+          conversation: true
+        }
+      });
+
+      // Procesar mensaje con el chatbot usando el ID de la conversación
+      const response = await this.chatbotService.processMessage(message.body, savedMessage.conversation.id.toString());
+      
+      // Enviar respuesta
+      await chat.sendMessage(response);
+
+      // Guardar respuesta en la base de datos
+      await this.prisma.message.create({
+        data: {
+          messageId: `bot_${Date.now()}`,
+          content: response,
+          sender: 'assistant',
+          messageType: 'text',
+          conversation: {
+            connect: {
+              id: savedMessage.conversation.id
+            }
+          }
+        }
+      });
+    } catch (error) {
+      this.logger.error('Error handling message:', error);
       throw error;
     }
   }
@@ -323,85 +372,39 @@ export class WhatsappService implements OnModuleInit {
         throw new Error('Cliente de WhatsApp no inicializado');
       }
 
-      const isConnected = await this.isConnected();
+      const isConnected = await this.isConnected;
       if (!isConnected) {
         throw new Error('WhatsApp no está conectado');
       }
 
-      // Obtener todos los chats
       const chats = await this.client.getChats();
-      let processedChats = 0;
-      
-      // Para cada chat, obtener y guardar los mensajes
+      let processedCount = 0;
+
       for (const chat of chats) {
-        if (chat.isGroup) continue; // Ignorar grupos si solo queremos chats individuales
-        
         try {
-          // Buscar o crear la conversación en la base de datos
-          const conversation = await this.prisma.conversation.upsert({
+          await this.prisma.conversation.upsert({
             where: {
-              id: await this.prisma.conversation
-                .findFirst({
-                  where: { whatsappId: chat.id.user }
-                })
-                .then(conv => conv?.id ?? -1)
+              whatsappId: chat.id.user
+            },
+            update: {
+              updatedAt: new Date()
             },
             create: {
               userId: chat.id.user,
               whatsappId: chat.id.user,
               status: 'active'
-            },
-            update: {
-              updatedAt: new Date()
             }
           });
-
-          // Obtener mensajes del chat
-          const messages = await chat.fetchMessages({ limit: 50 });
-          let processedMessages = 0;
-          
-          // Guardar cada mensaje
-          for (const msg of messages) {
-            if (!msg.body) continue; // Ignorar mensajes sin contenido
-
-            try {
-              const existingMessage = await this.prisma.message.findFirst({
-                where: { messageId: msg.id.id }
-              });
-
-              if (!existingMessage) {
-                await this.prisma.message.create({
-                  data: {
-                    conversationId: conversation.id,
-                    content: msg.body,
-                    sender: msg.fromMe ? 'assistant' : 'user',
-                    timestamp: new Date(msg.timestamp * 1000), // Convertir timestamp a fecha
-                    messageId: msg.id.id
-                  }
-                });
-                processedMessages++;
-              }
-            } catch (error) {
-              console.error(`Error guardando mensaje ${msg.id.id}:`, error);
-            }
-          }
-
-          console.log(`Procesados ${processedMessages} mensajes para el chat ${chat.id.user}`);
-          processedChats++;
+          processedCount++;
         } catch (error) {
-          console.error(`Error procesando chat ${chat.id.user}:`, error);
-          // Continuar con el siguiente chat incluso si hay error
-          continue;
+          this.logger.error(`Error processing chat ${chat.id.user}:`, error);
         }
       }
 
-      return { 
-        chatsProcessed: processedChats,
-        message: `Se procesaron ${processedChats} conversaciones exitosamente`
-      };
+      return { chatsProcessed: processedCount };
     } catch (error) {
-      console.error('Error recargando chats:', error);
-      throw new Error(error.message || 'Error al recargar las conversaciones de WhatsApp');
+      this.logger.error('Error reloading chats:', error);
+      throw error;
     }
   }
 }

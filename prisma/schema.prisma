@@ -37,7 +37,8 @@ model Room {
 model Conversation {
   id          Int       @id @default(autoincrement())
   userId      String    // WhatsApp number
-  status      String    // "active", "completed", "abandoned"
+  whatsappId  String    @unique  // WhatsApp chat ID
+  status      String    @default("active")  // "active", "closed", "archived"
   messages    Message[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -45,12 +46,17 @@ model Conversation {
 
 model Message {
   id             Int          @id @default(autoincrement())
+  messageId      String       @unique  // WhatsApp message ID
   conversationId Int
   conversation   Conversation @relation(fields: [conversationId], references: [id])
   sender         String       // "client" or "bot"
   content        String
   messageType    String       // "text", "image", "location", etc.
   timestamp      DateTime     @default(now())
+  needsValidation Boolean     @default(false)
+  isValidated    Boolean     @default(false)
+  validatedBy    String?
+  validatedAt    DateTime?
 }
 
 model SalesScript {
@@ -61,6 +67,21 @@ model SalesScript {
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model HotelInfo {
+  id              Int      @id @default(autoincrement())
+  name            String
+  description     String
+  location        String
+  amenities       String   // JSON string of amenities
+  policies        String   // JSON string of hotel policies
+  checkInTime     String
+  checkOutTime    String
+  contactPhone    String
+  contactEmail    String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
 
 model Settings {
